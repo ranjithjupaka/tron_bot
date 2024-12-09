@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TRC20 Approval Transactions with Balance</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 8px;
+        border: 1px solid #ddd;
+        text-align: left;
+      }
+
+       a {
+      color: #007BFF;
+      text-decoration: none;
+    }
+    </style>
+  </head>
+  <body>
+    <h1>TRC20 Approval Transactions with Balance</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Sr No</th>
+          <th>Address</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody id="transaction-list">
+      </tbody>
+    </table>
+
+    <script>
+      const url =
+        'https://api.trongrid.io/v1/accounts/TMPzR8hb66cNB6oQLZk4bY61VkjsjqG4Hu/transactions/trc20?contract_address=TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
+      const headers = { accept: 'application/json' }
+
+      const fetchBalance = async (address) => {
+        const balanceUrl = `https://api.trongrid.io/v1/accounts/${address}`
+        const response = await fetch(balanceUrl, { headers })
+        const data = await response.json()
+        console.log(data)
+
+        let trc20 = data.data[0] ? data.data[0].trc20 : []
+        console.log(trc20)
+
+        let usdt_address = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
+
+        const result = trc20.find(obj => obj.hasOwnProperty(usdt_address));
+
+        let balance = 0
+        if (result) {
+          balance = result[usdt_address]
+        }
+
+        return balance
+      }
+
+      fetch(url, { method: 'GET', headers: headers })
+        .then((response) => response.json())
+        .then(async (resp) => {
+          const data = resp.data
+          const transactionList = document.getElementById('transaction-list')
+          let srNo = 1 
+          const uniqueAddresses = new Set() 
+
+          for (let t of data) {
+            if (t.type === 'Approval' && !uniqueAddresses.has(t.from)) {
+              uniqueAddresses.add(t.from)
+
+              const balance = await fetchBalance(t.from)
+              const row = document.createElement('tr')
+
+              const srNoCell = document.createElement('td')
+              srNoCell.textContent = srNo++
+              row.appendChild(srNoCell)
+
+              const addressCell = document.createElement('td');
+            const addressLink = document.createElement('a');
+            addressLink.href = `https://tronscan.org/#/address/${t.from}`;
+            addressLink.target = "_blank"; 
+            addressLink.textContent = t.from; 
+            addressCell.appendChild(addressLink);
+            row.appendChild(addressCell);
+
+              const balanceCell = document.createElement('td')
+              balanceCell.textContent = balance + ' USDT'
+              row.appendChild(balanceCell)
+
+              transactionList.appendChild(row)
+            }
+          }
+        })
+        .catch((error) => {
+          console.error('Error:', error)
+        })
+    </script>
+  </body>
+</html>
